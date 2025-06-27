@@ -1,0 +1,9 @@
+from ..base_config import base, args_to_watch, logbase
+
+run_config = {
+'env_name':'InvertedDoublePendulum-v4',
+'noise_sched_tau': 0.1,
+'n_environment_steps': 1500000,
+'norm_keys': ['observations', 'actions', 'terminals'],
+}
+base.update(run_config)
