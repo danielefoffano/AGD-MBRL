@@ -224,7 +224,7 @@ def policy_guided_sample_fn(
             + 0.99 * (1.0 - binary_terminals[:, :-1]) * state_value[:, 1:]
         )
     
-    negative_log_sigm = -F.logsigmoid(-advantage)
+    negative_log_sigm = F.logsigmoid(-advantage)
 
     adv_grad = torch.autograd.grad([negative_log_sigm.sum()], [states])[0]
     grad = torch.zeros_like(adv_grad)
