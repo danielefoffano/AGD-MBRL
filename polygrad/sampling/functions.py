@@ -223,11 +223,13 @@ def policy_guided_sample_fn(
             + rewards[:, :-1]
             + 0.99 * (1.0 - binary_terminals[:, :-1]) * state_value[:, 1:]
         )
+
+    negative_abs_advantage = -torch.abs(advantage)
     
     #negative_log_sigm = F.logsigmoid(-advantage)
 
     #adv_grad = torch.autograd.grad([negative_log_sigm.sum()], [states])[0]
-    adv_grad = torch.autograd.grad([advantage.sum()], [states])[0]
+    adv_grad = torch.autograd.grad([negative_abs_advantage.sum()], [states])[0]
     grad = torch.zeros_like(adv_grad)
     grad[:,:-1,:] = adv_grad[:,:-1,:]
     UGV = torch.einsum('ij,bjk,kl->bil', U, grad.float(), V)
