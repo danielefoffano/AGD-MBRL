@@ -228,7 +228,7 @@ def policy_guided_sample_fn(
 
     #negative_abs_advantage = -torch.abs(advantage)
     
-    negative_log_sigm = F.logsigmoid(-advantage)
+    negative_log_sigm = F.logsigmoid(advantage)
 
     adv_grad = torch.autograd.grad([negative_log_sigm.sum()], [states])[0]
     #adv_grad = torch.autograd.grad([negative_sq_advantage.sum()], [states])[0]
