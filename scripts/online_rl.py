@@ -143,7 +143,7 @@ while step < args.n_environment_steps:
         if step >= args.pretrain_diffusion:
             batch = next(agent_dataloader)
             ac_batch = next(ac_dataloader)
-            agent_metrics = agent.training_step(batch, ac_batch, step)
+            agent_metrics = agent.training_step(batch, ac_batch, step)                      #AC training
             if step % train_metrics_interval == 0:
                 [
                     metrics.update({f"agent/{key}": agent_metrics[key]})
@@ -151,7 +151,7 @@ while step < args.n_environment_steps:
                 ]
 
         diffusion_updates = int(args.train_diffusion_ratio / args.train_agent_ratio)
-        diffusion_metrics = diffusion_trainer.train(diffusion_updates, step)
+        diffusion_metrics = diffusion_trainer.train(diffusion_updates, step)                #Diffusion training
         if step % train_metrics_interval == 0:
             [
                 metrics.update({f"diffusion/{key}": diffusion_metrics[key]})
