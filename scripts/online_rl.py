@@ -38,11 +38,10 @@ else:
     renderer = None
 model = configs["model_config"]()
 diffusion = configs["diffusion_config"](model)
-#value_model = configs["value_model_config"]()
-#value_diffusion = configs["value_diffusion_config"](value_model)
+value_model = configs["value_model_config"]()
+value_diffusion = configs["value_diffusion_config"](value_model)
 dataset = configs["dataset_config"](random_episodes)
-#diffusion_trainer = configs["trainer_config"](diffusion, dataset, eval_env, value_diffusion, renderer)
-diffusion_trainer = configs["trainer_config"](diffusion, dataset, eval_env, renderer)
+diffusion_trainer = configs["trainer_config"](diffusion, dataset, eval_env, value_diffusion, renderer)
 ac = configs["ac_config"](normalizer=dataset.normalizer)
 agent = configs["agent_config"](
     diffusion_model=diffusion_trainer.ema_model,
@@ -50,7 +49,7 @@ agent = configs["agent_config"](
     dataset=dataset,
     env=eval_env,
     renderer=renderer,
-    #value_model = ac.critic # Value function to compute advantage
+    value_model = diffusion_trainer.ema_model_value
 )
 
 utils.report_parameters(model)
@@ -187,14 +186,3 @@ while step < args.n_environment_steps:
     step += 1
 
 agent.save(args.savepath, step, run=run_nr)
-eval_metrics = evaluate_policy(
-            ac.forward_actor,
-            eval_env,
-            device,
-            step,
-            dataset,
-            use_mean=True,
-            n_episodes=20,
-            renderer=renderer,
-            savepath=args.savepath
-        )

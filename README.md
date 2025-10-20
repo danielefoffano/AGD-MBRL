@@ -15,4 +15,4 @@ python online_rl.py --config config.online_rl.cheetah --seed 1 --run_number 1
 
 ## Selecting a different Mujoco training environment
 
-To use another environment, change the last part of the config string (the one saying "cheetah") in the example above. In the `config/online_rl` folder you can find the IDs for the other environments (e.g., to train on hopper you will use `config.online_rl.cheetah`).
+To use another environment, change the last part of the config string (the one saying "cheetah") in the example above. In the `config/online_rl` folder you can find the IDs for the other environments (e.g., to train on hopper you will use `config.online_rl.hopper`).

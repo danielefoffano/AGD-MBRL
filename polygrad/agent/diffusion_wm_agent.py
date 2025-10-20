@@ -25,7 +25,7 @@ class DiffusionWMAgent(nn.Module):
         log_path,
         env,
         diffusion_method,
-        #value_model,
+        value_model,
         renderer=None,
         guidance_scale=1.0,
         log_interval=100,
@@ -43,7 +43,7 @@ class DiffusionWMAgent(nn.Module):
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.diffusion_model = diffusion_model
         self.ac = actor_critic
-        #self.value_model = value_model
+        self.value_model = value_model
         self.env = env
         self.dataset = dataset
         self.log_path = log_path
@@ -76,13 +76,14 @@ class DiffusionWMAgent(nn.Module):
         """
         Generate trajectories using policy-guided trajectory diffusion (polygrad)
         """
-        sample_c = step % 10000 == 0
+        sample_c = False
         trajs, imag_actions, seq, sampling_metrics = self.diffusion_model(
             conditions,
             sample_c,
             join(self.log_path, f"c_dictionary_{step}"),
             policy=self.ac.forward_actor,
-            value_f = self.ac.critic, #self.ac.forward_value,
+            value_f = self.value_model, #self.ac.forward_value,
+            q_function = self.ac.critic,
             verbose=False,
             normalizer=self.dataset.normalizer,
             guidance_scale=torch.exp(self.log_guidance),

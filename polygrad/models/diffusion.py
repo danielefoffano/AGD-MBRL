@@ -156,6 +156,7 @@ class GaussianDiffusion(nn.Module):
         normalizer=None,
         policy=None,
         value_f=None,
+        q_function=None,
         return_sequence=False,
         verbose=True,
         return_chain=False,
@@ -175,9 +176,11 @@ class GaussianDiffusion(nn.Module):
                 (shape[0], shape[1], self.action_dim), device=x.device
             )
         seq = []
+        c_dict = defaultdict(list)
+        c_indicator_dict = defaultdict(list)
 
         for t in reversed(range(0, self.n_timesteps)):
-            x, act_noisy, metrics = sample_fn(
+            x, act_noisy, c_metrics, metrics = sample_fn(
                 self,
                 x,
                 act_noisy,
@@ -188,6 +191,7 @@ class GaussianDiffusion(nn.Module):
                 normalizer=normalizer,
                 policy=policy,
                 value_f=value_f,
+                q_function=q_function,
                 sample_c = sample_c,
                 **sample_kwargs
             )
@@ -196,6 +200,14 @@ class GaussianDiffusion(nn.Module):
             x = apply_conditioning(x, cond, self.observation_dim)
             if return_sequence:
                 seq.append(x.cpu().detach().numpy())
+            if sample_c and (c_metrics is not None):
+                c_dict[t] = c_metrics[0]
+                c_indicator_dict[t] = c_metrics[1]
+        if sample_c:
+            with open(savepath+".pkl", 'wb') as f1:
+                pickle.dump(c_dict, f1)
+            with open(savepath+"_indicator.pkl", 'wb') as f2:
+                pickle.dump(c_indicator_dict, f2)
         return x, act_noisy, seq, metrics
 
     def conditional_sample(
@@ -207,6 +219,7 @@ class GaussianDiffusion(nn.Module):
         normalizer=None,
         policy=None,
         value_f=None,
+        q_function=None,
         horizon=None,
         **sample_kwargs
     ):
@@ -218,7 +231,7 @@ class GaussianDiffusion(nn.Module):
         shape = (batch_size, horizon, self.transition_dim)
 
         return self.p_sample_loop(
-            shape, cond, sample_c, savepath, act=act, normalizer=normalizer, policy=policy, value_f=value_f, **sample_kwargs
+            shape, cond, sample_c, savepath, act=act, normalizer=normalizer, policy=policy, value_f=value_f, q_function=q_function, **sample_kwargs
         )
 
     # ------------------------------------------ training ------------------------------------------#

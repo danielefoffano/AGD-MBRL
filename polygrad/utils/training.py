@@ -74,8 +74,8 @@ class Trainer(object):
         self.ema_model = copy.deepcopy(self.model)
         self.update_ema_every = update_ema_every
         self.env = env
-        #self.value_model = value_model
-        #self.ema_model_value = copy.deepcopy(self.value_model)
+        self.value_model = value_model
+        self.ema_model_value = copy.deepcopy(self.value_model)
 
         self.step_start_ema = step_start_ema
         self.log_freq = log_freq
@@ -93,7 +93,7 @@ class Trainer(object):
         self.scaler = torch.cuda.amp.GradScaler()
         self.val_scaler = torch.cuda.amp.GradScaler()
 
-        #self.optimizer_value = torch.optim.Adam(value_model.parameters(), lr = 2e-4)
+        self.optimizer_value = torch.optim.Adam(value_model.parameters(), lr = 2e-4)
 
         self.logdir = results_folder
         self.bucket = bucket
@@ -106,8 +106,8 @@ class Trainer(object):
     def reset_parameters(self):
         self.ema_model.load_state_dict(self.model.state_dict())
 
-    #def reset_parameters_value(self):
-    #    self.ema_model_value.load_state_dict(self.value_model.state_dict())
+    def reset_parameters_value(self):
+        self.ema_model_value.load_state_dict(self.value_model.state_dict())
 
     def update_dataset(self, dataset):
         self.dataset = dataset
@@ -136,11 +136,11 @@ class Trainer(object):
             return
         self.ema.update_model_average(self.ema_model, self.model)
 
-    #def step_ema_value(self):
-    #    if self.step < self.step_start_ema:
-    #        self.reset_parameters_value()
-    #        return
-    #    self.ema.update_model_average(self.ema_model_value, self.ema_model_value)
+    def step_ema_value(self):
+        if self.step < self.step_start_ema:
+            self.reset_parameters_value()
+            return
+        self.ema.update_model_average(self.ema_model_value, self.ema_model_value)
 
     # -----------------------------------------------------------------------------#
     # ------------------------------------ api ------------------------------------#
@@ -149,7 +149,7 @@ class Trainer(object):
     def train(self, n_train_steps, current_step=None):
         loss_sum = 0
         loss_count = 0
-        #loss_sum_value = 0
+        loss_sum_value = 0
         metrics = dict()
         for step in range(n_train_steps):
             batch = next(self.dataloader)
@@ -158,35 +158,35 @@ class Trainer(object):
                 loss, loss_metrics = self.model.loss(
                     batch.trajectories, batch.actions, batch.conditions
                 )
-                #loss_value, loss_value_metrics = self.value_model.loss(batch.value_trajectories, batch.conditions, batch.value)
+                loss_value, loss_value_metrics = self.value_model.loss(batch.value_trajectories, batch.conditions, batch.value)
             loss_sum += loss.item()
             loss_count += 1
-            #loss_sum_value += loss_value.item()
+            loss_sum_value += loss_value.item()
 
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)
             self.scaler.update()
             self.optimizer.zero_grad()
 
-            #self.val_scaler.scale(loss_value).backward()
-            #self.val_scaler.step(self.optimizer_value)
-            #self.val_scaler.update()
-            #self.optimizer_value.zero_grad()
+            self.val_scaler.scale(loss_value).backward()
+            self.val_scaler.step(self.optimizer_value)
+            self.val_scaler.update()
+            self.optimizer_value.zero_grad()
             # loss_value.backward()
             # self.optimizer_value.step()
             # self.optimizer_value.zero_grad()
 
             if self.step % self.update_ema_every == 0:
                 self.step_ema()
-                #self.step_ema_value()
+                self.step_ema_value()
 
             if self.step % self.log_freq == 0:
                 loss_avg = loss_sum / loss_count
-                #loss_value_avg = loss_sum_value / loss_count
+                loss_value_avg = loss_sum_value / loss_count
                 prev = self.time
                 now = time.time()
                 print(
-                    f"{current_step}: {loss_avg:8.4f} | t: {(now- prev):8.4f}",
+                    f"{current_step}: {loss_avg:8.4f} | l_val: {loss_value_avg:8.4f} | t: {(now- prev):8.4f}",
                     flush=True,
                 )
                 loss_sum = 0
