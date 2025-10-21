@@ -191,7 +191,7 @@ def policy_guided_sample_fn(
 
     diffuser_update = UGV
 
-    obs_recon = (guide_states + 2 * diffuser_update).detach()
+    obs_recon = (guide_states + 4 * diffuser_update).detach()
     x_recon[:, :, : model.observation_dim] = obs_recon
     x_recon = apply_conditioning(x_recon, cond, model.observation_dim)
     model_mean, _, model_log_variance = model.q_posterior(
