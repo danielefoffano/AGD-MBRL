@@ -186,3 +186,14 @@ while step < args.n_environment_steps:
     step += 1
 
 agent.save(args.savepath, step, run=run_nr)
+eval_metrics = evaluate_policy(
+            ac.forward_actor,
+            eval_env,
+            device,
+            step,
+            dataset,
+            use_mean=True,
+            n_episodes=20,
+            renderer=renderer,
+            savepath=args.savepath
+        )
