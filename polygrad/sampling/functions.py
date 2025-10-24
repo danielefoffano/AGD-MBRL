@@ -228,12 +228,35 @@ def policy_guided_sample_fn(
     #adv_grad = torch.autograd.grad([negative_log_sigm.sum()], [states])[0]
 
     adv_grad = torch.autograd.grad([advantage.sum()], [states])[0]
-    
+
     grad = torch.zeros_like(adv_grad)
     grad[:,:-1,:] = adv_grad[:,:-1,:]
+    # normalize grad
+    grad_norm = torch.linalg.vector_norm(grad, dim=(1,2), keepdim=True)
+    grad = grad / (grad_norm + 1e-8)
+
     UGV = torch.einsum('ij,bjk,kl->bil', U, grad.float(), V)
 
-    obs_recon = (guide_states + 3* UGV).detach()
+    # Cosine-based guidance schedule: λ_n = λ · (σ_n + β·σ_N · sin(π · n/N))
+    # where n is current timestep, N is total timesteps
+    N = model.n_timesteps  # Total number of diffusion steps
+    n = t  # Current timestep (goes from N to 0 during sampling)
+    lambda_base = 1.0  # Base guidance strength (λ)
+    beta = 0.3  # Modulation amplitude (β·σ_N term)
+
+    # Get noise std at current timestep (σ_n)
+    sigma_n = model_std[0][0][0].item()
+
+    # Get noise std at final timestep (σ_N) - typically the maximum noise
+    # For DDPM: σ_N corresponds to the noise at the start of diffusion
+    alphas_cumprod_start = model.alphas_cumprod[N - 1] if N > 0 else model.alphas_cumprod[-1]
+    sigma_N = torch.sqrt((1 - alphas_cumprod_start) / alphas_cumprod_start).item()
+
+    # Compute cosine-modulated guidance schedule
+    cosine_term = torch.sin(torch.tensor(math.pi * n / N))
+    lambda_n = lambda_base * (sigma_n + beta * sigma_N * cosine_term.item())
+
+    obs_recon = (guide_states + lambda_n * UGV).detach()
     
     x_recon[:, :, : model.observation_dim] = obs_recon
     x_recon = apply_conditioning(x_recon, cond, model.observation_dim)
