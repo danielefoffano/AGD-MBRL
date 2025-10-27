@@ -237,27 +237,25 @@ def policy_guided_sample_fn(
 
     UGV = torch.einsum('ij,bjk,kl->bil', U, grad.float(), V)
 
-    # Cosine-based guidance schedule: λ_n = λ · (σ_n + β·σ_N · sin(π · n/N))
-    # where n is current timestep, N is total timesteps
-    N = model.n_timesteps  # Total number of diffusion steps
-    n = t  # Current timestep (goes from N to 0 during sampling)
+    # Cosine-based guidance schedule: λ_t = λ · (σ_t + β·σ_T · sin(π · t/T))
+    # where t is current timestep, T is total timesteps
+    T = model.n_timesteps  # Total number of diffusion steps
     lambda_base = 1.0  # Base guidance strength (λ)
-    beta = 0.3  # Modulation amplitude (β·σ_N term)
+    beta = 0.3  # Modulation amplitude (β·σ_T term)
 
-    # Get noise std at current timestep (σ_n)
-    sigma_n = model_std[0][0][0].item()
+    # Get noise std at current timestep (σ_t)
+    sigma_t = model_std[0][0][0].item()
 
-    # Get noise std at final timestep (σ_N) - typically the maximum noise
-    # For DDPM: σ_N corresponds to the noise at the start of diffusion
-    alphas_cumprod_start = model.alphas_cumprod[N - 1] if N > 0 else model.alphas_cumprod[-1]
-    sigma_N = torch.sqrt((1 - alphas_cumprod_start) / alphas_cumprod_start).item()
+    # Get noise std at final timestep (σ_T) - typically the maximum noise
+    # For DDPM: σ_T corresponds to the noise at the start of diffusion
+    sigma_T = model.sqrt_one_minus_alphas_cumprod[T-1].item()
 
     # Compute cosine-modulated guidance schedule
-    cosine_term = torch.sin(torch.tensor(math.pi * n / N))
-    lambda_n = lambda_base * (sigma_n + beta * sigma_N * cosine_term.item())
+    cosine_term = torch.sin(torch.tensor(math.pi * t / T))
+    lambda_t = lambda_base * (sigma_t + beta * sigma_T * cosine_term.item())
 
-    obs_recon = (guide_states + lambda_n * UGV).detach()
-    
+    obs_recon = (guide_states + lambda_t * UGV).detach()
+
     x_recon[:, :, : model.observation_dim] = obs_recon
     x_recon = apply_conditioning(x_recon, cond, model.observation_dim)
     model_mean, _, model_log_variance = model.q_posterior(
