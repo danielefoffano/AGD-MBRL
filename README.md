@@ -1,4 +1,4 @@
-# Code for Adversarial Diffusion for Robust Reinforcement Learning
+# Code for Advantage-Guided Diffusion for Model-Based Reinforcement Learning
 
 ## How to run the code
 
