@@ -4,6 +4,6 @@ run_config = {
 'env_name':'Walker2d-v3',
 'n_environment_steps': 1500000,
 'guidance_type': 'grad',
-'group': 'poly_sigmoid_c3',
+'group': 'poly_sigmoid_c4',
 }
 base.update(run_config)

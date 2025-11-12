@@ -5,6 +5,6 @@ run_config = {
 'noise_sched_tau': 0.1,
 'n_environment_steps': 1500000,
 'guidance_type': 'grad',
-'group': 'poly_exp_c3',
+'group': 'poly_exp_c4',
 }
 base.update(run_config)
